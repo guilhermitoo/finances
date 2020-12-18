@@ -37,19 +37,18 @@ function Bill() {
 
   async function handleNewBill(e) {
     e.preventDefault();
-        
-    var dt = new Date(mt+'-10');
+      
+    let dt = new Date();
 
-    var month = dt.getMonth()+1;
-    var year = dt.getFullYear();
+    var first_date = `${dt.getFullYear()}-${dt.getMonth()+1}-${due_day}`;
     
     const data= {
-      description, category, value, due_day, payment_receive, month, year
+      description, category, value, first_date, payment_receive,
     };
     
     try {
       await api.post('bill', data, {});
-      
+       
       history.push('/bills');
     } catch(err){
         alert('Erro ao cadastrar conta, tente novamente.');

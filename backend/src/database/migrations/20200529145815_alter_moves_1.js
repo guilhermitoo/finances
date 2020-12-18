@@ -9,7 +9,7 @@ exports.up = function(knex) {
 
 exports.down = function(knex) {
     return (knex.schema.alterTable('moves', function(table) {
+        table.dropForeign('payment_type');        
         table.dropColumn('payment_type');
-        table.dropForeign('payment_type');
     }));
 };

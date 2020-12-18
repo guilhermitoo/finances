@@ -34,7 +34,6 @@ routes.post('/invoice', InvoicesControler.create);
 routes.get('/invoices', InvoicesControler.index);
 
 routes.get('/month_name', MonthController.getMonthName);
-routes.get('/months', MonthController.index);
 
 routes.post('/payment_type', PaymentTypesController.create);
 routes.get('/payment_types', PaymentTypesController.index);

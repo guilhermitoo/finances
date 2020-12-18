@@ -8,11 +8,5 @@ module.exports = {
         var name = global.getMonthName(month);
 
         return response.json({name});
-    },
-
-    async index(request, response) {
-        const months = await connection('month').select('*');
-    
-        return response.json(months);
     }
 }

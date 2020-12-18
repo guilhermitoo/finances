@@ -8,11 +8,11 @@ exports.up = function(knex) {
         table.foreign('category').references('id').inTable('categories');
         table.decimal('value').notNullable();
         table.integer('due_day').notNullable();
+        table.date('due_date').notNullable();
         table.enu('payment_receive',['P','R']).notNullable(); // P = pagamento, R = recebimento
         table.integer('portion').notNullable();
         table.integer('total_portion').notNullable();
-        table.integer('month_id').notNullable();
-        table.foreign('month_id').references('id').inTable('month');        
+        table.timestamp('created_at',{ precision: 6 }).defaultTo(knex.fn.now(6));
     });
 };
 

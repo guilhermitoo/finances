@@ -6,35 +6,26 @@ module.exports = {
         //const bills = await connection('bills').select('*');
 
         const bills = await connection('bills').select(
-        "bills.id",
-        "bills.description",
-        "categories.description as cat_description",
-        "mf.month_number || '/' || mf.year as first_date",
-        "ml.month_number || '/' || ml.year as last_date",
-        "bills.value",
-        "bills.due_day").
-        join('month as mf','bills.first_month','mf.id').
-        leftJoin('month as ml','bills.last_month','ml.id').
-        join('categories','bills.category','categories.id');
+        "bills.*",
+        "categories.description as cat_description")
+        .join('categories','bills.category','categories.id');
     
         return response.json(bills);
     },
 
     async create(request, response){
-        const {description,category,value,due_day,payment_receive,fixed_value,month,year} = request.body;        
+        const {description,category,value,payment_receive,fixed_value,first_date} = request.body;        
 
-        //if ( description == "" ) { }
-
-        var first_month = await global.getMonthID_(month,year);
+        let dt = new Date(first_date);
 
         const [id] = await connection('bills').insert({
             description,
             category,
             value,
-            due_day,
+            due_day : dt.getDate(),
             payment_receive,
             fixed_value,
-            first_month
+            first_date
         }, "id");
 
         return response.json({ id });
@@ -52,7 +43,7 @@ module.exports = {
         var mov = [];
         mov = await connection('moves').select('id').where('bill',id);        
         if (mov.length > 0) {
-            return response.status(200).json({erros:[{mensagem:'Não é possível excluir uma conta com movimentações. Neste caso apenas é possível finalizar a conta.'}]});
+            return response.status(400).json({erros:[{mensagem:'Não é possível excluir uma conta com movimentações. Neste caso apenas é possível finalizar a conta.'}]});
         }
 
         await connection('bills')
@@ -63,88 +54,100 @@ module.exports = {
     },
 
     async close(request,response){
-        const {id,month,year} = request.body;
+        const {id,last_date} = request.body;
 
         // verifica se a conta existe
         let bill = [];
         bill = await connection('bills').select('id').where('id',id);
         if (bill.length <= 0) {
-            return response.status(402).json({error:"Conta não encontrada."});
+            return response.status(400).json({error:"Conta não encontrada."});
         }
 
         // verifica se a conta já está fechada
         bill = [];
-        bill = await connection('bills').select('id').where('id',id).whereNull('last_month');
+        bill = await connection('bills').select('id').where('id',id).whereNull('last_date');
         if (bill.length <= 0) {
-            return response.status(402).json({error:"Conta já está finalizada."});
+            return response.status(400).json({error:"Conta já está finalizada."});
         }
 
         // verifica se a data para fechamento é maior ou igual que a data da última movimentação
         let mov = [];
-        let mt = [];
-        let last_month_id = await global.getMonthID_(month,year);
-        mt = await connection('month').select('first_day').where('id',last_month_id);               
-        mov = await connection('moves').join('month as m','moves.month_id','m.id').select('moves.id','m.first_day')
-            .where('moves.bill',3)
-            .orderBy('m.first_day','desc')
+
+        mov = await connection('moves').select('moves.resolution_date')
+            .where('moves.bill',id)
+            .orderBy('moves.resolution_date','desc')
             .limit(1);
-        if (mov.length > 0) {                                      
-            if (mov[0].first_day > mt[0].first_day) {
-                return response.status(402).json({error:"O mês para finalização deve ser maior ou igual ao mês da última movimentação."});   
+
+        if (mov.length > 0) {
+            if (mov[0].resolution_date > last_date) {
+                return response.status(402).json({error:"A data para finalização deve ser maior ou igual a data da última movimentação."});
             }
         }
         
         // verifica se a data para fechamento é maior ou igual que a data inicial da conta
         bill = [];
         bill = await connection('bills')
-            .join('month as m','bills.first_month','m.id').select('bills.id','m.first_day')
-            .where('bills.id',id);
-        if (mt[0].first_day < bill[0].first_day) {
-            return response.status(402).json({error:"O mês para finalização deve ser maior ou igual ao mês da abertura da conta."});    
+            .select('first_date')
+            .where('bills.id',id)
+        if (bill[0].first_date > last_date) {
+            return response.status(402).json({error:"A data para finalização deve ser maior ou igual a data da abertura da conta."});    
         }
         
         await connection('bills')
             .where("id",id)
-            .update({last_month : last_month_id});
+            .update({last_date});
 
         return response.status(204).send();        
     },
 
     async pay(request,response){
-        const {id, month, year, resolution_day, payment_type, value, payment_receive} = request.body;
+        const {id, resolution_date, payment_type, value} = request.body;
 
-        // verifica se a conta existe
-        var bill_exist = [];
-        bill_exist = await connection('bills').select('id').where('id',id);
-        if (bill_exist.length <= 0) {
-            return response.status(402).json({error:"Conta não encontrada."});
+        try {
+
+            // verifica se a conta existe
+            let bill_exist = []; 
+            bill_exist = await connection('bills').select('id').where('id',id);
+            if (bill_exist.length <= 0) {
+                return response.status(400).json({error:"Conta não encontrada."});
+            }
+
+            // verifica se a conta não está paga.
+            let dt = new Date(resolution_date);
+            dt = new Date(dt.getFullYear(),dt.getMonth()+1,0); // dia 0 trás o último dia do mês
+            
+            paym_move = await connection('moves').select('id')
+                .whereBetween('resolution_date',
+                    [
+                        dt.getFullYear()+'-'+(dt.getMonth() +1)+'-01', // dia 1 do mês
+                        dt.getFullYear()+'-'+(dt.getMonth() +1)+'-'+String(dt.getDate()).padStart(2,'0') // último dia do mês
+                    ])
+                .andWhere('bill',id);
+
+            if (paym_move.length > 0) {
+                return response.status(400).json({error:"Esta conta já está paga. Data do pagamento: "+resolution_date});
+            }
+
+            let bills = await connection('bills').select('description','category','payment_receive').where('id',id);
+            let description = bills[0].description;
+            let category = bills[0].category;
+            let payment_receive = bills[0].payment_receive;
+            let bill = id;        
+
+            const [id_move] = await connection('moves').insert({
+                description,
+                category,
+                resolution_date,
+                payment_receive,
+                value, 
+                bill, 
+                payment_type,  
+            }, "id");
+
+            return response.status(204).send();
+        
+        } catch (error) {
+            return response.status(400).json({error});
         }
-
-        var month_id = await global.getMonthID_(month,year);
-
-        // verifica se a conta não está paga.
-        paym_move = await connection('moves').select('id').where('month_id',month_id).andWhere('bill',id);
-
-        if (paym_move.length > 0) {
-            return response.status(402).json({error:"Esta conta já está paga no mês "+month+"/"+year});               
-        }
-
-        var bills = await connection('bills').select('description','category').where('id',id);
-        var description = bills[0].description;
-        var category = bills[0].category;
-        var bill = id;        
-
-        const [id_move] = await connection('moves').insert({
-            month_id,
-            description,
-            category,
-            resolution_day,
-            payment_receive,
-            value, 
-            bill, 
-            payment_type, 
-        }, "id");
-
-        return response.status(204).send();
     }
 }

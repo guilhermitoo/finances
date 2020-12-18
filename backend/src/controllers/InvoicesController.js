@@ -1,4 +1,5 @@
 const connection = require('../database/connection');
+const { getNextMonth } = require('../global');
 const global = require('../global');
 
 module.exports = {
@@ -9,27 +10,38 @@ module.exports = {
     },
 
     async create(request, response){
-        const {description,category,total,payment_receive,total_portion,date} = request.body;                        
+        const {description,category,total,payment_receive,total_portion,due_date} = request.body;                        
 
-        var id_list = new Array(total_portion);
-        var value = total/total_portion;
+        let id_list = new Array(total_portion);
+        let value = total/total_portion;
         
         for (let index = 0; index < total_portion; index++) {
-            var portion = index+1
+            let portion = index+1
+            
+            // let dt = new Date(due_date);
+            // dt.setMonth(dt.getMonth()+index);
+            // let ddate = dt.toDateString;
 
-            var ret = await global.getNextMonth(date,index);
-            var due_day = ret[0];
-            var month_id = ret[1];            
+            let ddate = due_date;
+
+            if (!String(ddate).includes(':')) {
+                ddate += ' 00:00:00';
+            }
+
+            ddate = await getNextMonth(ddate,index);
+
+            let dd = new Date(ddate);
+            let due_day = dd.getDate();
 
             const [id] = await connection('invoices').insert({
                 description,
                 category,
                 value,
-                due_day,
+                due_date : ddate,
+                due_day, 
                 payment_receive,
                 portion,
                 total_portion,
-                month_id
             }, "id");
 
             id_list[index] = id;

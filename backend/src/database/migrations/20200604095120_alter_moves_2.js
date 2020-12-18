@@ -9,7 +9,7 @@ exports.up = function(knex) {
 
 exports.down = function(knex) {
     return (knex.schema.alterTable('moves', function(table) {
-        table.dropColumn('invoice');
         table.dropForeign('invoice');
+        table.dropColumn('invoice');
     }));
 };

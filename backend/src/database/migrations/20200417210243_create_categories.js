@@ -4,6 +4,7 @@ exports.up = function(knex) {
         table.increments().primary();
         
         table.string('description').notNullable();
+        table.timestamp('created_at',{ precision: 6 }).defaultTo(knex.fn.now(6));
     });
 };
 

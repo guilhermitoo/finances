@@ -115,8 +115,8 @@ function Bills() {
                             <tr key={b.id} onClick={() => targetGrid(b)} class="">
                                 <td class="px-2 py-2">{b.description}</td>
                                 <td class="px-2 py-2 hidden md:flex">{b.cat_description}</td>
-                                <td class="px-2 py-2">{b.first_date}</td>
-                                <td class="px-2 py-2 hidden md:flex">{b.last_date}</td>
+                                <td class="px-2 py-2">{new Date(b.first_date).toLocaleString("pt-BR").split(' ')[0]}</td>
+                                <td class="px-2 py-2 hidden md:flex">{b.last_date && new Date(b.last_date).toLocaleString("pt-BR").split(' ')[0]}</td>
                                 <td class="px-2 py-2 font-semibold text-right md:pr-8">
                                     {Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(b.value)}
                                 </td>

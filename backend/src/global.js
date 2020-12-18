@@ -20,76 +20,28 @@ module.exports = {
         return names[month-1];
     },
 
-    async getMonthID_(month,year) {
-        let dt = new Date(year,month-1,1);
-        let rt = await module.exports.getMonthID(dt);
-
-        return rt[1];
-    },
-
-    async getMonthID(date) {
-        try {
-            var dt = new Date(date);
-
-            var day = dt.getDate();
-            var month_number = dt.getMonth()+1; // Soma 1 pois o método retorna indexado em 0.
-            var year = dt.getFullYear();               
-            var name = this.getMonthName(month_number);        
-
-            const month = await connection('month').where('month_number',month_number).andWhere('year',year).select('id').first();        
-
-            // verificar se o mês existe. Caso não exista, cadastrar o mês
-            if (month) {
-                var month_id = month.id;
-            }
-            else {
-                var first_day = year+'-'+month_number+'-'+'01';
-                var id = String(month_number)+year;
-
-                var [month_id] = await connection('month').insert({
-                    id,
-                    name,
-                    month_number,
-                    year,
-                    first_day
-                },"id");            
-            };
-
-            var arr = new Array(2)
-            arr[0] = day;
-            arr[1] = month_id;
-            return arr;
-        }
-        catch (e) {
-            return e;
-        }
-    },
-
     async getNextMonth(date,index) {
-        // se for índice 0, pega o ID do mês informado
-        // senão, incrementa o mês/ano com o valor de index
-        if (index==0) {
-            return module.exports.getMonthID(date);
+        if (index===0) {
+            return date;
         }
         else {
-            var dt = new Date(date);                            
+            let dt = new Date(date);      
+            
+            let month = ((dt.getMonth()+index) % 12);
+            let y = Math.trunc((dt.getMonth()+index)/12);
+            let year = dt.getFullYear()+y;
+            let day = dt.getDate();
 
-            if (((dt.getMonth()+1) == 1) && (dt.getDate>28)) {
-                var dday = 28;
-            } else if (dt.getDate>30) {
-                var dday = 30;
-            } else { 
-                var dday = dt.getDate();
-            }
+            if (day == 31) {
+                let dt_ud = new Date(year,month+1,0); // dia 0 trás o último dia do mês
+                day = dt_ud.getDate();
+            } else if ((month === 1) && (day>28)) {
+                day = 28;
+            }            
 
-            var mmonth = (((dt.getMonth()) + (index)) % 12);
-            var years = Math.trunc((dt.getMonth()+index)/12);            
+            let c_date = new Date(year, month, day);
 
-            var c_date = new Date(dt.getFullYear()+years, mmonth, dday);            
-    
-            var ret = module.exports.getMonthID(c_date);
-
-            return ret;
-        }        
+            return c_date;
+        }
     }
 }

@@ -62,16 +62,18 @@ function Pagar(props) {
     }
 
     function loadBills() {
-        api.get('/open?year='+_year+'&month='+_month+'&type='+props.type,{}).then(response => {
-            if (Array.isArray(response.data["bills"])) {
-                SetOpenPayments(response.data.bills);
-            }
-        });
-        api.get('/paid?year='+_year+'&month='+_month+'&type='+props.type,{}).then(response => {
-            if (Array.isArray(response.data["bills"])) {
-                SetPaidPayments(response.data.bills);
-            }
-        });
+        if ((_year > 0) && (_month > 0)) {
+            api.get('/open?year='+_year+'&month='+_month+'&type='+props.type,{}).then(response => {
+                if (Array.isArray(response.data["bills"])) {
+                    SetOpenPayments(response.data.bills);
+                }
+            });
+            api.get('/paid?year='+_year+'&month='+_month+'&type='+props.type,{}).then(response => {
+                if (Array.isArray(response.data["bills"])) {
+                    SetPaidPayments(response.data.bills);
+                }
+            });
+        }
     }
     
     function closeModal(){
@@ -109,8 +111,10 @@ function Pagar(props) {
     async function handlePay(e) {
         e.preventDefault();
 
+        let resolution_date = `${_year}-${_month}-${resolution_day}`;
+
         const data= {
-            id : id_bill, month : _month, year : _year, resolution_day, payment_type, value, payment_receive : props.type
+            id : id_bill, resolution_date, payment_type, value
         };
 
         try {
@@ -120,7 +124,7 @@ function Pagar(props) {
             closeModal();
             resetPayment();
         } catch(err){
-            alert('Erro ao '+GetTextoPagarReceber()+' conta, tente novamente.');
+            alert('Erro ao '+GetTextoPagarReceber()+' conta, tente novamente. Erro original: '+ err.error);
         }
     }
 
@@ -242,7 +246,7 @@ function Pagar(props) {
                         {paidPayments.map(pp => (
                                 <tr key={pp.id} >
                                     <td class="px-2  py-2">{pp.description}</td>
-                                    <td class="px-2  py-2">{pp.resolution_day}</td>
+                                    <td class="px-2  py-2">{new Date(pp.resolution_date).getDate()}</td>
                                     <td class="px-2  py-2 text-green-500 font-semibold">
                                         {Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pp.value)}
                                     </td>

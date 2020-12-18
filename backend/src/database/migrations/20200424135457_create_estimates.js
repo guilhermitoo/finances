@@ -8,6 +8,7 @@ exports.up = function(knex) {
         table.decimal('value').notNullable();
 
         table.unique('category');
+        table.timestamp('created_at',{ precision: 6 }).defaultTo(knex.fn.now(6));
     });
 };
 

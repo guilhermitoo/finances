@@ -3,7 +3,8 @@ exports.up = function(knex) {
     return knex.schema.createTable('payment_types',function(table){
         table.increments().primary();
         
-        table.string('description').notNullable();        
+        table.string('description').notNullable();   
+        table.timestamp('created_at',{ precision: 6 }).defaultTo(knex.fn.now(6));
     }); 
 };
 
