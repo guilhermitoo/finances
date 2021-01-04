@@ -83,7 +83,7 @@ module.exports = {
 
          return response.json(resp);
       } catch(err) {
-         return response.status(402).json({err});
+         return response.status(400).json({err});
       }
    },
 

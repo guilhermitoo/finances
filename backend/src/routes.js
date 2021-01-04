@@ -6,9 +6,11 @@ const EstimatesController = require('./controllers/EstimatesController');
 const InvoicesControler = require('./controllers/InvoicesController');
 const MonthController = require('./controllers/MonthController');
 const PaymentTypesController = require('./controllers/PaymentTypeController');
+const UsersController = require('./controllers/UsersController');
 const routes = express.Router();
 
-  
+routes.post('/auth', UsersController.auth);
+routes.post('/user', UsersController.create);
 
 routes.post('/category', CategoryController.create);
 routes.get('/categories', CategoryController.index);
